@@ -1,0 +1,17 @@
+# Local credentials - never commit
+config.ini
+
+# Runtime data & logs
+*.log
+*.csv
+*.jsonl
+
+# Python
+__pycache__/
+.venv/
+venv/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
