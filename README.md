@@ -1,5 +1,7 @@
 # Starmaker 作品采集系统
 
+> **English workflow doc**: [WORKFLOW.md](WORKFLOW.md) — end-to-end pipeline: Setup → Migration → Verification → Production Run → Monitoring → Maintenance → Scaling.
+
 逆向 Starmaker Android API（`api/v17 .../users/{uid}/recordings` 端点，OAuth 1.0 HMAC-SHA1 签名，签名逻辑在 [tools.py](tools.py)），基于 MongoDB 基表批量采集用户全部作品。每条 API 返回记录（含 recording/song/user 嵌套结构）原样入库。
 
 ## 核心特性
