@@ -4,6 +4,29 @@
 
 逆向 Starmaker Android API（`api/v17 .../users/{uid}/recordings` 端点，OAuth 1.0 HMAC-SHA1 签名，签名逻辑在 [tools.py](tools.py)），基于 MongoDB 基表批量采集用户全部作品。每条 API 返回记录（含 recording/song/user 嵌套结构）原样入库。
 
+## 项目简介（What this project does）
+
+Starmaker（Sing & Record）是一个在线 K 歌社交平台。本项目通过逆向其 Android 客户端协议，实现了对平台用户作品的全量批量采集：
+
+- **逆向成果**：还原了作品列表端点的 OAuth 1.0 HMAC-SHA1 请求签名算法（[tools.py](tools.py)），无需真机/模拟器，纯 Python 协议请求即可稳定拉取数据
+- **采集对象**：以「歌手用户 ID 基表」（MongoDB `creator_ids` 集合）为驱动，逐用户翻页采集其全部作品，每条记录含 `recording`（录音作品 30+ 字段）、`song`、`user` 等嵌套结构
+- **数据产出**：API 返回的嵌套 JSON **原样落库** MongoDB（`recording` 集合），不做拍平/字段裁剪，保留最大分析灵活性
+- **可靠性**：断点续采、中断自愈（唯一索引幂等去重），长跑实测 21 万+ 作品、120+ 用户零数据丢失
+- **可观测**：请求级 CSV 日志 + 一键进度报告（状态/缺口/401 率/重试恢复率/吞吐）
+
+## 技术栈（Tech Stack）
+
+| 层 | 技术 |
+|---|---|
+| 语言/运行时 | Python 3.12+（Windows 环境实测 3.12 / 3.13 均可） |
+| HTTP | `requests` + Session 连接池；走系统代理（Clash/V2rayN）；401 重试时强制重建 TCP 连接 |
+| 协议签名 | OAuth 1.0 HMAC-SHA1，[tools.py](tools.py) 自实现（nonce 负号前缀、签名 base URL 固定 v16 等定制细节见代码注释） |
+| 存储 | MongoDB 8.x（`pymongo`），嵌套 JSON 原样入库 |
+| 去重/断点 | MongoDB 唯一索引 `(owner_user_id, recording.sm_id)` + `BulkWriteError 11000` 幂等写入 |
+| 配置 | `config.ini` + [db_config.py](db_config.py) 统一加载（凭据不进 git） |
+| 进程运维 | `psutil`（launcher/解释器进程组识别）+ Windows Task Scheduler（长跑托管） |
+| 统计分析 | `request_log.csv` 请求级日志 + 纯 Python 聚合脚本（401 率/重试恢复率/吞吐） |
+
 ## 核心特性
 
 - **断点续传**：作品写入依赖 MongoDB 唯一索引 `(owner_user_id, recording.sm_id)` 幂等去重（`insert_many ordered=False` + BulkWriteError 11000 跳过），中断后重跑零重复、自动续传
